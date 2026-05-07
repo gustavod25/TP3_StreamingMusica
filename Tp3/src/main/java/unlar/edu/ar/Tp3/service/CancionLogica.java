@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import unlar.edu.ar.Tp3.models.Cancion;
+import unlar.edu.ar.Tp3.models.Cancion.Genero;
 import unlar.edu.ar.Tp3.repository.repositorio;
 
 @Service
@@ -16,7 +17,7 @@ public class CancionLogica {
         this.repo = repo;
     }
 
-    public Cancion buscarId(int id) {
+    public Cancion buscarId(String id) {
         return repo.getCanciones().stream()
                 .filter(c -> c.getId().equals(id))
                 .findFirst()
@@ -35,7 +36,8 @@ public class CancionLogica {
     }
 
     public Cancion busquedaBinariaTitulo(String titulo) {
-        List<Cancion> ordenada = repo.getCanciones().sort(Comparator.comparing(Cancion::getTitulo))
+        List<Cancion> ordenada = repo.getCanciones().stream()
+                .sorted(Comparator.comparing(Cancion::getTitulo))
                 .collect(Collectors.toList());
 
         int inicio = 0;
@@ -59,4 +61,49 @@ public class CancionLogica {
 
     }
 
+    private EstrategiaRecomendacion estrategia;
+
+    public void setEstrategia(EstrategiaRecomendacion estrategia) {
+        this.estrategia = estrategia;
+    }
+
+    public List<Cancion> recomendarCanciones(List<Cancion> canciones, Cancion base) {
+        if (estrategia == null) {
+            return Collections.emptyList();
+        }
+        return estrategia.recomendar(canciones, base);
+    }
+
+    public List<Cancion> filtrarCanciones(List<Cancion> canciones,Genero genero, double ratingMinimo) {
+        return canciones.stream()
+                .filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo)
+                .collect(Collectors.toList());
+        
+    }
+
+
+
+
+    public List<Cancion> top10Canciones (List<Cancion> canciones) {
+        return canciones.stream()
+                .sorted(Comparator.comparingInt(c -> c.getReproducciones().get()).reversed())
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
+
+
+
+
+
+    public Optional<Cancion> top10Artistas(List<Cancion> canciones) {
+        return canciones.stream()
+                .max(Comparator.comparingInt(c -> c.getReproducciones().get()));
+    }
+
+
+    public Map<Integer, List<Cancion>> agruparPorDecada(List<Cancion> canciones) {
+        return canciones.stream()
+                .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10));
+    }
 }

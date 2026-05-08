@@ -106,4 +106,14 @@ public class CancionLogica {
         return canciones.stream()
                 .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10));
     }
+
+
+
+
+
+    public List<Cancion> busquedaMultiple(Genero genero, double ratingMinimo, int añoMinimo) {
+        return repositorio.getCanciones().stream().filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo && c.getFechaLanzamiento().getYear() >= añoMinimo)
+                .sorted(Comparator.comparing(Cancion::getTitulo))
+                .collect(Collectors.toList());
+    }
 }

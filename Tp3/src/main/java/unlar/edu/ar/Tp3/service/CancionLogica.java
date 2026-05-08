@@ -94,8 +94,6 @@ public class CancionLogica {
 
 
 
-
-
     public Optional<Cancion> top10Artistas(List<Cancion> canciones) {
         return canciones.stream()
                 .max(Comparator.comparingInt(c -> c.getReproducciones().get()));
@@ -116,4 +114,29 @@ public class CancionLogica {
                 .sorted(Comparator.comparing(Cancion::getTitulo))
                 .collect(Collectors.toList());
     }
+
+
+
+    public Map<String, List<Cancion>> decada() {
+        return repositorio.getCanciones().stream()
+                .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10 + "s"));
+    }
+
+
+
+
+    public List<Cancion> generarPlayList(int minMax) {
+        int segMax = minMax * 60;
+        List<Cancion> playlist = nuevaPlayList(repositorio.getCanciones(), segMax, 0);
+
+        if (playlist == null) {
+            throw new RuntimeException("No se pudo generar una playlist con la duración dada."); 
+        }
+        return playlist;
+    }
+
+
 }
+
+
+

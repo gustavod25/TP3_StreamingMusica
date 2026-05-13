@@ -12,6 +12,7 @@ public class Cancion {
     private String id = UUID.randomUUID().toString();
     private String titulo;
     private Album album;
+    private Genero genero;
 
     public enum Genero {
         ROCK, POP, JAZZ, CLASICA, HIPHOP

@@ -25,11 +25,11 @@ public class CancionLogica {
 
     }
 
-    public void reproducirCancion(int id) {
+    public void reproducirCancion(String id) {
         Cancion cancion = buscarId(id);
         if (cancion != null) {
             cancion.getReproducciones().incrementAndGet();
-            System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + cancion.getArtista());
+            System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + cancion.getAlbum().getArtista());
         } else {
             System.out.println("Canción no encontrada.");
         }
@@ -86,7 +86,7 @@ public class CancionLogica {
 
     public List<Cancion> top10Canciones (List<Cancion> canciones) {
         return canciones.stream()
-                .sorted(Comparator.comparingInt(c -> c.getReproducciones().get()).reversed())
+                .sorted(Comparator.comparingInt((Cancion c) -> c.getReproducciones().get()).reversed())
                 .limit(10)
                 .collect(Collectors.toList());
     }
@@ -110,7 +110,8 @@ public class CancionLogica {
 
 
     public List<Cancion> busquedaMultiple(Genero genero, double ratingMinimo, int añoMinimo) {
-        return repositorio.getCanciones().stream().filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo && c.getFechaLanzamiento().getYear() >= añoMinimo)
+        return repo.getCanciones().stream()
+                .filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo && c.getFechaLanzamiento().getYear() >= añoMinimo)
                 .sorted(Comparator.comparing(Cancion::getTitulo))
                 .collect(Collectors.toList());
     }
@@ -118,7 +119,7 @@ public class CancionLogica {
 
 
     public Map<String, List<Cancion>> decada() {
-        return repositorio.getCanciones().stream()
+        return repo.getCanciones().stream()
                 .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10 + "s"));
     }
 
@@ -127,7 +128,7 @@ public class CancionLogica {
 
     public List<Cancion> generarPlayList(int minMax) {
         int segMax = minMax * 60;
-        List<Cancion> playlist = nuevaPlayList(repositorio.getCanciones(), segMax, 0);
+        List<Cancion> playlist = nuevaPlayList(repo.getCanciones(), segMax, 0);
 
         if (playlist == null) {
             throw new RuntimeException("No se pudo generar una playlist con la duración dada."); 
@@ -135,6 +136,18 @@ public class CancionLogica {
         return playlist;
     }
 
+    private List<Cancion> nuevaPlayList(List<Cancion> canciones, int segMax, int startIndex) {
+        List<Cancion> playlist = new ArrayList<>();
+        int totalSegundos = 0;
+        for (int i = startIndex; i < canciones.size(); i++) {
+            Cancion cancion = canciones.get(i);
+            if (totalSegundos + cancion.getDuracionSegundos() <= segMax) {
+                playlist.add(cancion);
+                totalSegundos += cancion.getDuracionSegundos();
+            }
+        }
+        return playlist;
+    }
 
 }
 

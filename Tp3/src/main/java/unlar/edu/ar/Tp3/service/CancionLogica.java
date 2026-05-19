@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 import unlar.edu.ar.Tp3.models.Cancion;
-import unlar.edu.ar.Tp3.models.Cancion.Genero;
+import unlar.edu.ar.Tp3.models.Genero;
 import unlar.edu.ar.Tp3.repository.repositorio;
 
 @Service
@@ -22,22 +22,28 @@ public class CancionLogica {
                 .filter(c -> c.getId().equals(id))
                 .findFirst()
                 .orElse(null);
-
     }
 
     public void reproducirCancion(String id) {
         Cancion cancion = buscarId(id);
         if (cancion != null) {
-            cancion.getReproducciones().incrementAndGet();
-            System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + cancion.getAlbum().getArtista());
-        } else {
-            System.out.println("Canción no encontrada.");
         }
+        if (cancion.getReproducciones() != null) {
+            cancion.getReproducciones().incrementAndGet();
+        }
+        String artista = (cancion.getArtista() != null) ? cancion.getArtista().getNombre() : "desconocido";
+        System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + artista);
+    }else
+
+    {
+        System.out.println("Canción no encontrada.");
+    }
     }
 
+    // Búsqueda binaria por título
     public Cancion busquedaBinariaTitulo(String titulo) {
         List<Cancion> ordenada = repo.getCanciones().stream()
-                .sorted(Comparator.comparing(Cancion::getTitulo))
+                .sorted(Comparator.comparing(Cancion::getTitulo, String.CASE_INSENSITIVE_ORDER))
                 .collect(Collectors.toList());
 
         int inicio = 0;
@@ -48,17 +54,14 @@ public class CancionLogica {
             Cancion cancionMedio = ordenada.get(medio);
             int comparacion = cancionMedio.getTitulo().compareToIgnoreCase(titulo);
 
-            if (comparacion == 0) {
+            if (comparacion == 0)
                 return cancionMedio;
-            } else if (comparacion < 0) {
+            if (comparacion < 0)
                 inicio = medio + 1;
-            } else {
+            else
                 fin = medio - 1;
-            }
         }
-
         return null;
-
     }
 
     private EstrategiaRecomendacion estrategia;
@@ -68,88 +71,112 @@ public class CancionLogica {
     }
 
     public List<Cancion> recomendarCanciones(List<Cancion> canciones, Cancion base) {
-        if (estrategia == null) {
+        if (estrategia == null)
             return Collections.emptyList();
-        }
         return estrategia.recomendar(canciones, base);
     }
 
-    public List<Cancion> filtrarCanciones(List<Cancion> canciones,Genero genero, double ratingMinimo) {
+    // Filtrado compuesto con Streams
+    public List<Cancion> filtrarCanciones(List<Cancion> canciones, Genero genero, Integer yearFrom, Integer yearTo,
+            Double ratingMin) {
         return canciones.stream()
-                .filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo)
+                .filter(c -> {
+                    if (genero != null && c.getGenero() != genero)
+                        return false;
+                    if (yearFrom != null
+                            && (c.getFechaLanzamiento() == null || c.getFechaLanzamiento().getYear() < yearFrom))
+                        return false;
+                    if (yearTo != null
+                            && (c.getFechaLanzamiento() == null || c.getFechaLanzamiento().getYear() > yearTo))
+                        return false;
+                    if (ratingMin != null && c.getRating() < ratingMin)
+                        return false;
+                    return true;
+                })
                 .collect(Collectors.toList());
-        
     }
 
-
-
-
-    public List<Cancion> top10Canciones (List<Cancion> canciones) {
-        return canciones.stream()
+    // Top N por reproducciones
+    public List<Cancion> topNCanciones(int n) {
+        return repo.getCanciones().stream()
                 .sorted(Comparator.comparingInt((Cancion c) -> c.getReproducciones().get()).reversed())
-                .limit(10)
+                .limit(n)
                 .collect(Collectors.toList());
     }
 
-
-
-
-    public Optional<Cancion> top10Artistas(List<Cancion> canciones) {
-        return canciones.stream()
-                .max(Comparator.comparingInt(c -> c.getReproducciones().get()));
+    public Map<Genero, Double> promedioDuracionPorGenero() {
+        return repo.getCanciones().stream()
+                .filter(c -> c.getGenero() != null)
+                .collect(Collectors.groupingBy(Cancion::getGenero,
+                        Collectors.averagingInt(Cancion::getDuracionSegundos)));
     }
 
+    // Artista más popular (por suma de reproducciones)
+    public Optional<String> artistaMasPopular() {
+        Map<String, Integer> mapa = repo.getCanciones().stream()
+                .filter(c -> c.getArtista() != null && c.getArtista().getNombre() != null)
+                .collect(Collectors.groupingBy(c -> c.getArtista().getNombre(),
+                        Collectors.summingInt(c -> c.getReproducciones().get())));
 
-    public Map<Integer, List<Cancion>> agruparPorDecada(List<Cancion> canciones) {
-        return canciones.stream()
+        return mapa.entrySet().stream().max(Map.Entry.comparingByValue()).map(Map.Entry::getKey);
+    }
+
+    // Distribución por décadas
+    public Map<Integer, List<Cancion>> agruparPorDecada() {
+        return repo.getCanciones().stream()
+                .filter(c -> c.getFechaLanzamiento() != null)
                 .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10));
     }
 
-
-
-
-
     public List<Cancion> busquedaMultiple(Genero genero, double ratingMinimo, int añoMinimo) {
         return repo.getCanciones().stream()
-                .filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo && c.getFechaLanzamiento().getYear() >= añoMinimo)
+                .filter(c -> c.getGenero() == genero && c.getRating() >= ratingMinimo && c.getFechaLanzamiento() != null
+                        && c.getFechaLanzamiento().getYear() >= añoMinimo)
                 .sorted(Comparator.comparing(Cancion::getTitulo))
                 .collect(Collectors.toList());
     }
 
+    // Generar playlist aproximada (backtracking, intenta alcanzar target exacto o
+    // la mejor aproximación)
+    public List<Cancion> generarPlayList(int minutos) {
+        int objetivoEnSeg = minutos * 60;
+        List<Cancion> canciones = new ArrayList<>(repo.getCanciones());
+        canciones.sort(Comparator.comparingInt(Cancion::getDuracionSegundos).reversed());
 
+        solucionOptima mejor = new solucionOptima();
+        retroceder(canciones, 0, new ArrayList<>(), 0, objetivoEnSeg, mejor);
 
-    public Map<String, List<Cancion>> decada() {
-        return repo.getCanciones().stream()
-                .collect(Collectors.groupingBy(c -> (c.getFechaLanzamiento().getYear() / 10) * 10 + "s"));
+        return mejor.mejorLista;
     }
 
-
-
-
-    public List<Cancion> generarPlayList(int minMax) {
-        int segMax = minMax * 60;
-        List<Cancion> playlist = nuevaPlayList(repo.getCanciones(), segMax, 0);
-
-        if (playlist == null) {
-            throw new RuntimeException("No se pudo generar una playlist con la duración dada."); 
+    private void retroceder(List<Cancion> canciones, int indice, List<Cancion> listaActual, int sumaActual,
+            int objetivoEnSeg, solucionOptima mejor) {
+        if (sumaActual > objetivoEnSeg)
+            return;
+        if (sumaActual == objetivoEnSeg) {
+            mejor.mejorLista = new ArrayList<>(listaActual);
+            mejor.mejorSuma = sumaActual;
+            return;
         }
-        return playlist;
-    }
-
-    private List<Cancion> nuevaPlayList(List<Cancion> canciones, int segMax, int startIndex) {
-        List<Cancion> playlist = new ArrayList<>();
-        int totalSegundos = 0;
-        for (int i = startIndex; i < canciones.size(); i++) {
-            Cancion cancion = canciones.get(i);
-            if (totalSegundos + cancion.getDuracionSegundos() <= segMax) {
-                playlist.add(cancion);
-                totalSegundos += cancion.getDuracionSegundos();
-            }
+        if (sumaActual > mejor.mejorSuma) {
+            mejor.mejorLista = new ArrayList<>(listaActual);
+            mejor.mejorSuma = sumaActual;
         }
-        return playlist;
+        if (indice >= canciones.size())
+            return;
+
+        for (int i = indice; i < canciones.size(); i++) {
+            Cancion c = canciones.get(i);
+            listaActual.add(c);
+            retroceder(canciones, i + 1, listaActual, sumaActual + c.getDuracionSegundos(), objetivoEnSeg, mejor);
+            listaActual.remove(listaActual.size() - 1);
+            if (mejor.mejorSuma == objetivoEnSeg)
+                return;
+        }
     }
 
+    private static class solucionOptima {
+        List<Cancion> mejorLista = new ArrayList<>();
+        int mejorSuma = 0;
+    }
 }
-
-
-

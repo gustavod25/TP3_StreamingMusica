@@ -38,7 +38,6 @@ public class CancionLogica {
     {
         System.out.println("Canción no encontrada.");
     }
-    }
 
     // Búsqueda binaria por título
     public Cancion busquedaBinariaTitulo(String titulo) {

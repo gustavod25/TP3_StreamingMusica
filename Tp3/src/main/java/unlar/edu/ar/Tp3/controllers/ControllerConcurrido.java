@@ -1,6 +1,6 @@
 package unlar.edu.ar.Tp3.controllers;
 
-import java.util.concurrent.*;
+import java.util.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,13 +12,17 @@ import unlar.edu.ar.Tp3.repository.repositorio;
 public class ControllerConcurrido {
     private final repositorio repo;
 
-    public ControllerConcurrido(repositorio repo) { this.repo = repo; }
+    public ControllerConcurrido(repositorio repo) {
+        this.repo = repo;
+    }
 
     // POST /api/debug/reproducir-paralelo/{id}?n=100
     @PostMapping("/reproducir-paralelo/{id}")
-    public ResponseEntity<Object> reproducirParalelo(@PathVariable String id, @RequestParam(defaultValue = "100") int n) throws InterruptedException {
+    public ResponseEntity<Object> reproducirParalelo(@PathVariable String id, @RequestParam(defaultValue = "100") int n)
+            throws InterruptedException {
         Cancion c = repo.getCanciones().stream().filter(x -> x.getId().equals(id)).findFirst().orElse(null);
-        if (c == null) return ResponseEntity.notFound().build();
+        if (c == null)
+            return ResponseEntity.notFound().build();
 
         ExecutorService ex = Executors.newFixedThreadPool(Math.min(50, n));
         CountDownLatch latch = new CountDownLatch(n);

@@ -27,16 +27,16 @@ public class CancionLogica {
     public void reproducirCancion(String id) {
         Cancion cancion = buscarId(id);
         if (cancion != null) {
+            if (cancion.getReproducciones() != null) {
+                cancion.getReproducciones().incrementAndGet();
+            } else {
+                cancion.incrementarReproduccion();
+            }
+            String artista = (cancion.getArtista() != null) ? cancion.getArtista().getNombre() : "desconocido";
+            System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + artista);
+        } else {
+            System.out.println("Canción no encontrada.");
         }
-        if (cancion.getReproducciones() != null) {
-            cancion.getReproducciones().incrementAndGet();
-        }
-        String artista = (cancion.getArtista() != null) ? cancion.getArtista().getNombre() : "desconocido";
-        System.out.println("Reproduciendo: " + cancion.getTitulo() + " de " + artista);
-    }else
-
-    {
-        System.out.println("Canción no encontrada.");
     }
 
     // Búsqueda binaria por título

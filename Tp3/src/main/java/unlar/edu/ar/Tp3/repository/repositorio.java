@@ -114,4 +114,16 @@ public class repositorio {
         }
     }
 
+    // Compatibilidad: exponer lista y método de agregar genérico para controladores
+    // existentes
+    public List<Cancion> getCanciones() {
+        synchronized (canciones) {
+            return new ArrayList<>(canciones);
+        }
+    }
+
+    public void agregarCancion(Cancion cancion) {
+        guardar(cancion);
+    }
+
 }
